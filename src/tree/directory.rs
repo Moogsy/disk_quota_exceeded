@@ -15,6 +15,8 @@ pub struct Directory {
 
     children: Vec<File> ,
     subdirs: Vec<Directory>,
+
+    total_contained_files_count: usize
 }
 
 impl Directory {
@@ -26,17 +28,20 @@ impl Directory {
             read_dir_errors: Vec::new(),
 
             children: Vec::new(),
-            subdirs: Vec::new()
+            subdirs: Vec::new(),
+
+            total_contained_files_count: 0
         }
     }
 
     pub fn build(&mut self) {
-        let mut to_explore = VecDeque::new();
-        to_explore.push_back(self);
+        self.build_direct_children();
+        self.total_contained_files_count = self.children.len();
 
-        while let Some(dir) = to_explore.pop_back() {
-            dir.build_direct_children();
-            to_explore.extend(dir.subdirs.iter_mut());
+        for subdir in self.subdirs.iter_mut() {
+            subdir.build_direct_children();
+
+            self.total_contained_files_count += subdir.children.len();
         }
     }
 

@@ -1,5 +1,5 @@
 use std::io;
-use std::fs::{self, DirEntry, FileType};
+use std::fs::{DirEntry, FileType};
 
 #[derive(Debug)]
 pub struct File {
