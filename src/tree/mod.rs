@@ -1,7 +1,5 @@
 mod directory;
-mod file;
-mod tree_impl;
+mod entry;
 
-pub use file::File;
+pub use entry::Entry;
 pub use directory::Directory;
-pub use tree_impl::Tree;

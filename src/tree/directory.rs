@@ -1,9 +1,14 @@
-use std::fs::{self, DirEntry, FileType};
+use std::fs::{self, DirEntry};
 use std::io;
 use std::path::PathBuf;
-use std::collections::VecDeque;
 
-use super::File;
+// use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
+
+use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
+
+use crate::config::Config;
+
+use super::Entry;
 
 
 #[derive(Debug)]
@@ -13,10 +18,10 @@ pub struct Directory {
     can_read_dir_error: Option<io::Error>,
     read_dir_errors: Vec<io::Error>,
 
-    children: Vec<File> ,
+    children: Vec<Entry> ,
     subdirs: Vec<Directory>,
 
-    total_contained_files_count: usize
+    contained_files_count: usize
 }
 
 impl Directory {
@@ -30,18 +35,32 @@ impl Directory {
             children: Vec::new(),
             subdirs: Vec::new(),
 
-            total_contained_files_count: 0
+            contained_files_count: 0
         }
     }
 
-    pub fn build(&mut self) {
+    pub fn build(&mut self, config: &Config) -> usize {
         self.build_direct_children();
-        self.total_contained_files_count = self.children.len();
 
-        for subdir in self.subdirs.iter_mut() {
-            subdir.build_direct_children();
+        let subleaf_count: usize = self.subdirs
+            .par_iter_mut()
+            .map(|subdir| subdir.build(config))
+            .sum();
 
-            self.total_contained_files_count += subdir.children.len();
+        self.contained_files_count = self.children.len() + subleaf_count;
+
+        self.process_config(config);
+
+        self.contained_files_count
+    }
+
+    fn process_config(&mut self, config: &Config) {
+        if config.sort_dirs {
+            todo!()
+        }
+
+        if config.sort_files {
+            todo!()
         }
     }
 
@@ -56,35 +75,6 @@ impl Directory {
         };
     }
 
-    fn make_child(&mut self, entry: DirEntry, file_type: Result<FileType, io::Error>) {
-        let child = File::new(entry, file_type);
-        self.children.push(child);
-    }
-
-    fn handle_typed_entry(&mut self, entry: DirEntry, file_type: FileType) {
-
-        let path = entry.path();
-
-        if file_type.is_dir() {
-            let subdir = Directory::new(path);
-            self.subdirs.push(subdir);
-        } 
-        else {
-            self.make_child(entry, Ok(file_type));
-        }
-    }
-
-    fn handle_entry(&mut self, entry: DirEntry){
-        match entry.file_type() {
-            Ok(file_type) => {
-                self.handle_typed_entry(entry, file_type);
-            },
-            Err(error) => {
-                self.make_child(entry, Err(error));
-            }
-        }
-    }
-
     fn handle_entries<T>(&mut self, entries: T) 
     where 
         T: Iterator<Item = Result<DirEntry, io::Error>>
@@ -93,6 +83,18 @@ impl Directory {
             match maybe_entry {
                 Ok(entry) => self.handle_entry(entry),
                 Err(e) => self.read_dir_errors.push(e),
+            }
+        }
+    }
+    fn handle_entry(&mut self, entry: DirEntry){
+        match entry.metadata() {
+            Ok(metadata) if metadata.is_dir() => {
+                let subdir = Directory::new(entry.path());
+                self.subdirs.push(subdir);
+            },
+            file_or_unknown => {
+                let child = Entry::new(entry, file_or_unknown);
+                self.children.push(child);
             }
         }
     }

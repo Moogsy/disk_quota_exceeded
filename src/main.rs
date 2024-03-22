@@ -1,21 +1,22 @@
 mod tree;
 
+use std::path::PathBuf;
+
 use clap::Parser;
-use tree::Directory;
 
 mod config;
+mod formatter;
+use formatter::Tree;
 
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let initial_path = std::env::current_dir()?;
-
-    let mut directory = Directory::new(initial_path);
-    directory.build();
-
-    println!("{:#?}", directory);
-
     let config = config::Config::parse();
     println!("{:#?}", config);
+
+    let initial_path = PathBuf::from(config.initial_path.clone());
+    let tree = Tree::new(initial_path, config);
+
+    println!("{:#?}", tree);
 
 
     Ok(())
