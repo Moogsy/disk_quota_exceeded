@@ -92,7 +92,13 @@ impl Directory {
             &config.formatting.tee
         };
 
-        println!("{}{}{}", header, prefix, name);
+        print!("{}", header);
+        print!("{}", prefix);
+
+        if config.metadata.disk_usage {
+            print!("[{}] ", self.cumulative_size);
+        }
+        println!("{}", name);
 
         for (index, subdir) in self.subdirs.iter().enumerate() {
             if subdir.subdirs.is_empty() && config.filtering.prune {

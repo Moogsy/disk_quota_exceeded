@@ -25,6 +25,13 @@ pub struct Formatting {
 
 #[derive(Args, Debug)]
 #[group(required = false, multiple = false)]
+pub struct Metadata {
+    #[arg(long, group = "metadata", default_value_t = true)]
+    pub disk_usage: bool
+}
+
+#[derive(Args, Debug)]
+#[group(required = false, multiple = false)]
 pub struct Filtering {
     /// Whether entries whose name start with a '.' should be shown
     #[arg(short, long, default_value_t = false)]
@@ -47,6 +54,9 @@ pub struct Config {
 
     #[command(flatten)]
     pub filtering: Filtering,
+
+    #[command(flatten)]
+    pub metadata: Metadata,
 
     /// Which paths to explore
     #[arg(default_value = ".")]
