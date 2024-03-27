@@ -1,3 +1,5 @@
+use std::ffi::OsString;
+
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -6,12 +8,18 @@ use clap::Parser;
 #[command(version, about, long_about = None)]
 pub struct Config {
     #[arg(default_value = ".")]
-    pub initial_path: String,
+    pub initial_path: Vec<OsString>,
 
-    #[arg(short, long, default_value_t = true)]
-    pub sort_dirs: bool,
+    #[arg(long, default_value = "└──")]
+    pub elbow: String, 
 
-    #[arg(short, long, default_value_t = true)]
-    pub sort_files: bool,
+    #[arg(long, default_value = "│  ")]
+    pub pipe: String,
+
+    #[arg(long, default_value = "├──")]
+    pub tee: String,
+
+    #[arg(long, default_value = "   ")]
+    pub blank: String
 }
 

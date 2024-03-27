@@ -1,23 +1,30 @@
 mod tree;
+mod config;
 
 use std::path::PathBuf;
 
 use clap::Parser;
 
-mod config;
-mod formatter;
-use formatter::Tree;
-
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = config::Config::parse();
-    println!("{:#?}", config);
 
-    let initial_path = PathBuf::from(config.initial_path.clone());
-    let tree = Tree::new(initial_path, config);
+    for path in config.initial_path.iter() {
+        let initial_path = PathBuf::from(path);
 
-    println!("{:#?}", tree);
-
+        match tree::Tree::new(initial_path.clone(), &config) {
+            Ok(tree) => {
+                tree.display();
+            },
+            Err(err) => {
+                eprintln!(
+                    "Couldn't open {}: {err}",
+                    initial_path.display(),
+                );
+            }
+            
+        }
+    }
 
     Ok(())
 }

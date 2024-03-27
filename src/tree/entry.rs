@@ -14,6 +14,10 @@ impl Entry {
 
         Self { path, metadata }
     }
+
+    pub fn metadata(&self) -> Result<&Metadata, &io::Error> {
+        self.metadata.as_ref()
+    }
 }
 
 impl PartialEq for Entry {
