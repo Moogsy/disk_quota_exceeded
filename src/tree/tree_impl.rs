@@ -1,5 +1,4 @@
-use std::io::Write;
-use std::{io::stdout, path::PathBuf};
+use std::path::PathBuf;
 
 use std::fs;
 use crate::{config::Config, tree::Directory};
@@ -20,7 +19,6 @@ impl<'a> Tree<'a> {
 
     pub fn display(&self)
     {
-        self.root.display(self.config, String::new(), true);
+        self.root.display(self.config, String::new(), true, true);
     }
-
 }

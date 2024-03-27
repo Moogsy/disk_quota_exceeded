@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-use std::io::Write;
 use std::fs::{self, DirEntry, Metadata};
 use std::{io, u64};
 use std::path::PathBuf;
@@ -68,25 +66,47 @@ impl Directory {
         &self, 
         config: &Config,
         header: String,
+        is_first: bool,
         is_last: bool,
     ) {
-        let anchor = if is_last {"└──"} else {"├──"};
 
-        println!("{header}{}{}", anchor, self.path.iter().last().unwrap().to_str().unwrap());
+        let name = if is_first {
+            // We already checked that the path is valid
+            let canonicalized = self.path.canonicalize().unwrap();
+            canonicalized.display().to_string()
+        } else {
+            self.path
+                .components()
+                .last()
+                .unwrap()
+                .as_os_str()
+                .to_string_lossy()
+                .to_string()
+        };
+
+        let prefix = if is_first {
+            ""
+        } else if is_last {
+            &config.formatting.elbow
+        } else {
+            &config.formatting.tee
+        };
+
+        println!("{}{}{}", header, prefix, name);
 
         for (index, subdir) in self.subdirs.iter().enumerate() {
-            let is_last = index + 1 == self.subdirs.len();
-
-            let mut new_header = header.clone();
-            new_header += "│  ";
-            
-            subdir.display(config, new_header, is_last);
+            if subdir.subdirs.is_empty() && config.filtering.prune {
+                continue;
+            }
+            let header_extender = if is_last {&config.formatting.blank} else {&config.formatting.pipe};
+            let is_last = (index + 1) == self.subdirs.len();
+            let header = header.clone() + header_extender.as_str();
+            subdir.display(config, header, false, is_last);
         }
-
     }
 
     pub fn build(&mut self, config: &Config) {
-        self.build_direct_children();
+        self.build_direct_children(config);
 
         let (subleaf_files_count, subleaf_size): (u64, u128) = self.subdirs
             .par_iter_mut()
@@ -111,24 +131,35 @@ impl Directory {
         self.cumulative_size = subleaf_size + children_size + (self.metadata.len() as u128);
     }
 
-    fn build_direct_children(&mut self) {
+    fn build_direct_children(&mut self, config: &Config) {
         match fs::read_dir(&self.path) {
             Err(err) => {
                 self.can_read_dir_error = Some(err);
             }
             Ok(entries) => {
-                self.handle_entries(entries);
+                self.handle_entries(entries, config);
             }
         };
     }
 
-    fn handle_entries<T>(&mut self, entries: T) 
+    fn handle_entries<T>(&mut self, entries: T, config: &Config) 
     where 
         T: Iterator<Item = Result<DirEntry, io::Error>>
     {
         for maybe_entry in entries {
             match maybe_entry {
-                Ok(entry) => self.handle_entry(entry),
+                Ok(entry) => {
+
+                    let file_name = entry.file_name();
+                    let lossy_name = file_name.to_string_lossy();
+
+                    if lossy_name.starts_with('.') && !config.filtering.all {
+                        continue;
+                    }
+
+                    self.handle_entry(entry);
+
+                },
                 Err(e) => self.read_dir_errors.push(e),
             }
         }

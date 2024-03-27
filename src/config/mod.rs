@@ -1,25 +1,57 @@
 use std::ffi::OsString;
 
-use clap::Parser;
+use clap::{Args, Parser};
+
+/// Formatting options
+#[derive(Args, Debug)]
+#[group(required = false, multiple = false)]
+pub struct Formatting {
+    /// The elbow value connecting the last directory
+    #[arg(long, group = "format", default_value = "└──")]
+    pub elbow: String, 
+
+    /// The character used for pipe
+    #[arg(long, group = "format", default_value = "│  ")]
+    pub pipe: String,
+
+    /// The prefix for a directory
+    #[arg(long, group = "format", default_value = "├──")]
+    pub tee: String,
+
+    /// Indentation used to separate directories
+    #[arg(long, group = "format", default_value = "   ")]
+    pub blank: String,
+}
+
+#[derive(Args, Debug)]
+#[group(required = false, multiple = false)]
+pub struct Filtering {
+    /// Whether entries whose name start with a '.' should be shown
+    #[arg(short, long, default_value_t = false)]
+    pub all: bool,
+
+    /// Whether empty directories should not be displayed
+    #[arg(short, long, default_value_t = false)]
+    pub prune: bool
+
+}
 
 #[derive(Parser, Debug)]
 /// An utility that helps you find what is making 
 /// you reach the infamous disk quota exceeded message.
 #[command(version, about, long_about = None)]
 pub struct Config {
+    
+    #[command(flatten)]
+    pub formatting: Formatting,
+
+    #[command(flatten)]
+    pub filtering: Filtering,
+
+    /// Which paths to explore
     #[arg(default_value = ".")]
     pub initial_path: Vec<OsString>,
 
-    #[arg(long, default_value = "└──")]
-    pub elbow: String, 
 
-    #[arg(long, default_value = "│  ")]
-    pub pipe: String,
-
-    #[arg(long, default_value = "├──")]
-    pub tee: String,
-
-    #[arg(long, default_value = "   ")]
-    pub blank: String
 }
 
