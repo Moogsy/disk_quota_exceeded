@@ -2,6 +2,7 @@ use std::fs::{self, DirEntry, Metadata};
 use std::{io, u64};
 use std::path::PathBuf;
 
+use humansize::DECIMAL;
 use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 
 use crate::config::Config;
@@ -42,7 +43,7 @@ pub struct Directory {
 
     /// Total size of files contained in this directory 
     /// and it's subdirs
-    cumulative_size: u128
+    cumulative_size: u64
 }
 
 impl Directory {
@@ -96,7 +97,12 @@ impl Directory {
         print!("{}", prefix);
 
         if config.metadata.disk_usage {
-            print!("[{}] ", self.cumulative_size);
+            if config.formatting.human_readable {
+                let fmt = humansize::format_size(self.cumulative_size, DECIMAL);
+                print!("[{}] ", fmt);
+            } else {
+                print!("[{}] ", self.cumulative_size);
+            }
         }
         println!("{}", name);
 
@@ -114,7 +120,16 @@ impl Directory {
     pub fn build(&mut self, config: &Config) {
         self.build_direct_children(config);
 
-        let (subleaf_files_count, subleaf_size): (u64, u128) = self.subdirs
+        if config.formatting.sort {
+            self.subdirs.sort_unstable_by(
+                |a, b| a.path.cmp(&b.path)
+            );
+            self.children.sort_unstable_by(
+                |a, b| a.path().cmp(b.path())
+            )
+        }
+
+        let (subleaf_files_count, subleaf_size): (u64, u64) = self.subdirs
             .par_iter_mut()
             .map(|subdir| {
                 subdir.build(config);
@@ -124,17 +139,17 @@ impl Directory {
 
         self.cumulative_file_count = (self.children.len() as u64) + subleaf_files_count;
 
-        let children_size: u128 = self.children
+        let children_size: u64 = self.children
             .par_iter()
             .map(|child| {
                 match child.metadata() {
-                    Ok(metadata) => metadata.len() as u128,
+                    Ok(metadata) => metadata.len(),
                     Err(_) => 0
                 }
             })
             .sum();
 
-        self.cumulative_size = subleaf_size + children_size + (self.metadata.len() as u128);
+        self.cumulative_size = subleaf_size + children_size + self.metadata.len();
     }
 
     fn build_direct_children(&mut self, config: &Config) {

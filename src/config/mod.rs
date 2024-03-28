@@ -21,6 +21,14 @@ pub struct Formatting {
     /// Indentation used to separate directories
     #[arg(long, group = "format", default_value = "   ")]
     pub blank: String,
+
+    /// Whether size units should be converted to a human readable format
+    #[arg(long, group = "format", default_value_t = false)]
+    pub human_readable: bool,
+
+    /// Whether folders and files should be sorted
+    #[arg(long, group = "format", default_value_t = true)]
+    pub sort: bool,
 }
 
 #[derive(Args, Debug)]
@@ -39,8 +47,11 @@ pub struct Filtering {
 
     /// Whether empty directories should not be displayed
     #[arg(short, long, default_value_t = false)]
-    pub prune: bool
+    pub prune: bool,
 
+    /// Only output directories
+    #[arg(short, long, default_value_t = false)]
+    pub directories_only: bool
 }
 
 #[derive(Parser, Debug)]

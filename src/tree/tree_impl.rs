@@ -1,24 +1,27 @@
 use std::path::PathBuf;
 
 use std::fs;
-use crate::{config::Config, tree::Directory};
+use crate::config::Config;
+
+use super::entry::Entry;
 
 #[derive(Debug)]
 pub struct Tree<'a> {
-    root: Directory,
+    root: Entry,
     config: &'a Config
 }
 
 impl<'a> Tree<'a> {
     pub fn new(path: PathBuf, config: &'a Config) -> Result<Self, std::io::Error> {
         let metadata = fs::metadata(&path)?; 
-        let mut root = Directory::new(path, metadata); 
-        root.build(config);
+        let mut root = Entry::new(path, metadata); 
+        root.build();
         Ok(Self { root, config })
     }
 
     pub fn display(&self)
     {
-        self.root.display(self.config, String::new(), true, true);
+        println!("{:#?}", self.root);
+        // self.root.display(self.config, String::new(), true, true);
     }
 }
