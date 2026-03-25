@@ -100,12 +100,15 @@ impl Directory {
         }
         println!("{}", name);
 
-        for (index, subdir) in self.subdirs.iter().enumerate() {
-            if subdir.subdirs.is_empty() && config.filtering.prune {
-                continue;
-            }
+        let visible_subdirs: Vec<&Directory> = self
+            .subdirs
+            .iter()
+            .filter(|subdir| !(subdir.subdirs.is_empty() && config.filtering.prune))
+            .collect();
+
+        for (index, subdir) in visible_subdirs.iter().enumerate() {
             let header_extender = if is_last {&config.formatting.blank} else {&config.formatting.pipe};
-            let is_last = (index + 1) == self.subdirs.len();
+            let is_last = (index + 1) == visible_subdirs.len();
             let header = header.clone() + header_extender.as_str();
             subdir.display(config, header, false, is_last);
         }
@@ -184,5 +187,4 @@ impl Directory {
     }
 
 }
-
 
