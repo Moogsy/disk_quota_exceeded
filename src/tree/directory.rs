@@ -100,12 +100,15 @@ impl Directory {
         }
         println!("{}", name);
 
-        for (index, subdir) in self.subdirs.iter().enumerate() {
-            if subdir.subdirs.is_empty() && config.filtering.prune {
-                continue;
-            }
+        let mut visible_subdirs = self
+            .subdirs
+            .iter()
+            .filter(|subdir| !(subdir.subdirs.is_empty() && config.filtering.prune))
+            .peekable();
+
+        while let Some(subdir) = visible_subdirs.next() {
             let header_extender = if is_last {&config.formatting.blank} else {&config.formatting.pipe};
-            let is_last = (index + 1) == self.subdirs.len();
+            let is_last = visible_subdirs.peek().is_none();
             let header = header.clone() + header_extender.as_str();
             subdir.display(config, header, false, is_last);
         }
@@ -184,5 +187,3 @@ impl Directory {
     }
 
 }
-
-
